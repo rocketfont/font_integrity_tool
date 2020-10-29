@@ -1,2 +1,23 @@
 # font_integrity_tool
-This tool checks the integrity of the font file. It identifies whether at least one unnecessary glyph exists or not.
+This tool checks the integrity of the font files.
+
+It checks the glyphs from unicode U+0021, and check if there are any unnecessary spaces.
+
+Allowed spaces are:
+ - U+0020 : Space
+ - U+00A0 : No-break Space(NBSP)
+ - U+1680 : Ogham Space Mark
+ - U+2000 : En Quad
+ - U+2001 : Em Quad
+ - U+2002 : En Space
+ - U+2003 : Em Space
+ - U+2004 : Three-Per-Em Space
+ - U+2005 : Four-Per-Em Space
+ - U+2006 : Six-Per-Em Space
+ - U+2007 : Figure Space
+ - U+2008 : Punctuation Space
+ - U+2009 : Thin Space
+ - U+200A : Hair Space
+ - U+202F : Narrow NBSP
+ - U+205F : Medium Mathematical Space
+ - U+3000 : Ideographic Space
