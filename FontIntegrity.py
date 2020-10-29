@@ -51,10 +51,10 @@ if minGlyph > maxGlyph:
     sys.exit(-2)
 
 if platform.system() == "Windows":
-    shcmd = "ttx -t cmap " + fontname
+    shcmd = "ttx -t cmap " + "\"" + fontname + "\""
 
 else:
-    shcmd = "./ttx -t cmap " + fontname
+    shcmd = "ttx -t cmap " + "\"" + fontname + "\""
 
 os.popen(shcmd).read()
 
