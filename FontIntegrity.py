@@ -67,7 +67,10 @@ numtable = []
 tag_map = xml_root.iter('map')
 
 for chars in tag_map:
-    numtable.append(chars.attrib["code"])
+    try:
+        numtable.append(chars.attrib["code"])
+    except KeyError:
+        pass
 
 print(numtable[0:128])
 ## print(buffer)
