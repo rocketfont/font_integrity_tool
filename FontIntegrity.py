@@ -22,13 +22,18 @@ if len(sys.argv) == 1:
 
 fontname = sys.argv[1] + '.ttf'
 xml_name = sys.argv[1] + '.ttx'
+exist_glyph_text = sys.argv[1] + '.txt'
 
-print(fontname)
-print(xml_name)
+## print(fontname)
+## print(xml_name)
 
 if not os.path.exists(fontname):
-    print("The font does not exist.")
-    sys.exit(-2)
+    print("The TTF font does not exist. Finding OTF...")
+    fontname = sys.argv[1] + '.otf'
+    if not os.path.exists(fontname):
+        print("The font does not exist.")
+        sys.exit(-2)
+
 
 if len(sys.argv) == 2:
     minGlyph = 0xAC00
@@ -55,45 +60,45 @@ os.popen(shcmd).read()
 
 ## TTX-XML PART ##
 
-file = open(xml_name, mode='rt', encoding='utf-8')
-buffer = file.read()
-file.close()
-
-lines = buffer.split('\n')
+xml_file = ET.parse(xml_name)
+xml_root = xml_file.getroot()
 numtable = []
-buffer = ""
 
-for line in lines:
-    buffer = line.strip()
-    if buffer.find('<map') < 0:
-        continue
-    else:
-        buffer = line[line.find('\"') + 1:]
-        buffer = buffer[:buffer.find('\"')]
-    numtable.append(buffer)
+tag_map = xml_root.iter('map')
 
+for chars in tag_map:
+    numtable.append(chars.attrib["code"])
 
 print(numtable[0:128])
 ## print(buffer)
 
-## FONT PART ##
-
-
-
 ## IMAGE PART ##
 
 fnt = ImageFont.truetype(fontname, 15)
+existCodeAry = []
+numofEmpty = 0
+numofExist = 0
+
+codenum_prev = -1
 
 for code in numtable:
-    num = int(code, 16)
-    if num not in range(minGlyph, maxGlyph + 1):
+    codenum = int(code, 16)
+
+    if codenum_prev > codenum:
+        break
+
+    if codenum not in range(minGlyph, maxGlyph + 1):
+        codenum_prev = codenum
         continue
-    if num <= 0x20:
+    if codenum <= 0x20: ## ignore control chars and space
+        codenum_prev = codenum
         continue
     
+    ## Make a 24x24 image
     img = Image.new('RGB', (24, 24), color = 'white')
     drawer = ImageDraw.Draw(img)
-    drawer.text((4,4), chr(num), font=fnt, fill=(0,0,0))
+    drawer.text((4,4), chr(codenum), font=fnt, fill=(0,0,0))
+
     ## print(img)
     
     ## img.save('test.png')
@@ -108,16 +113,26 @@ for code in numtable:
     isBlank = True
 
     for (r, g, b) in pixels:
-        if r < 255 and g < 255 and b < 255:
+        if r < 255 or g < 255 or b < 255: #if the color of pixel is not white
             isBlank = False
             break
 
     if isBlank:
-        print("This font has unnecessary blanks : 0x%X\n" % num)
-        sys.exit(-1)
-        isBlank = True
-        break
+        print("Unnecessary blank detected : %d" % codenum)
+        numofEmpty += 1
 
-if not isBlank:
-    print("This font doesn't have unnecessary blanks.\n")
-    sys.exit(0)
+    else:
+        existCodeAry.append(codenum)
+        numofExist += 1
+
+    codenum_prev = codenum
+
+txt_file = open(exist_glyph_text, mode='wt', encoding='utf-8')
+for code in existCodeAry:
+    txtline = "%d\n" % code
+    txt_file.write(txtline)
+
+print('For given range : %d empty glyphs / %d existing glyphs' % (numofEmpty, numofExist))
+print("Existing glpyhs table created. Check out the text file.\n")
+txt_file.close()
+sys.exit(0)
