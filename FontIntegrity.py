@@ -7,6 +7,7 @@ from fontTools.ttLib import TTFont
 import fontTools.ttx
 from PIL import Image, ImageFont, ImageDraw
 import xml.etree.ElementTree as ET
+from orderedset import OrderedSet
 
 ## ARGUMENT PART ##
 
@@ -20,9 +21,9 @@ if len(sys.argv) == 1:
     print("FONTNAME excludes the extension.")
     sys.exit(-3)
 
-fontname = sys.argv[1] + '.ttf'
-xml_name = sys.argv[1] + '.ttx'
-exist_glyph_text = sys.argv[1] + '.txt'
+fontname = sys.argv[1] + '.ttf' ## input font file
+xml_name = sys.argv[1] + '.ttx' ## output xml file
+exist_glyph_text = sys.argv[1] + '.txt' ## output text file
 
 ## print(fontname)
 ## print(xml_name)
@@ -62,39 +63,37 @@ os.popen(shcmd).read()
 
 xml_file = ET.parse(xml_name)
 xml_root = xml_file.getroot()
-numtable = []
+numtable = set() ## initialize empty set
 
 tag_map = xml_root.iter('map')
 
 for chars in tag_map:
     try:
-        numtable.append(chars.attrib["code"])
+        numtable.add(chars.attrib["code"]) ## add hex string into the set, without duplication
     except KeyError:
-        pass
+        pass ## ignore key error
 
-print(numtable[0:128])
+codeAry = []
+for code in numtable:
+    codeAry.append(int(code, 16)) ## convert string into integer
+
+codeAry.sort(reverse=False) ## sort values in ascending order
+
+print(codeAry[0:128])
 ## print(buffer)
 
 ## IMAGE PART ##
 
 fnt = ImageFont.truetype(fontname, 15)
-existCodeAry = []
+allowedBlank = [0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x20, 0x85, 0xA0, 0x1680, 0x180E, 0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005, 0x2006, 0x2007, 0x2008, 0x2009, 0x200A, 0x200B, 0x200C, 0x200D, 0x2028, 0x2029, 0x202F, 0x205F, 0x2060, 0x3000, 0xFEFF]
 numofEmpty = 0
 numofExist = 0
 
-codenum_prev = -1
+txt_file = open(exist_glyph_text, mode='wt', encoding='utf-8')
 
-for code in numtable:
-    codenum = int(code, 16)
+for codenum in codeAry:
 
-    if codenum_prev > codenum:
-        break
-
-    if codenum not in range(minGlyph, maxGlyph + 1):
-        codenum_prev = codenum
-        continue
-    if codenum <= 0x20: ## ignore control chars and space
-        codenum_prev = codenum
+    if codenum < 0x20: ## ignore control chars and space
         continue
     
     ## Make a 24x24 image
@@ -116,26 +115,28 @@ for code in numtable:
     isBlank = True
 
     for (r, g, b) in pixels:
-        if r < 255 or g < 255 or b < 255: #if the color of pixel is not white
+        if r < 255 or g < 255 or b < 255: ## if the color of pixel is not white
             isBlank = False
             break
 
     if isBlank:
-        print("Unnecessary blank detected : %d" % codenum)
-        numofEmpty += 1
+        if codenum in allowedBlank: ## allowed blank
+            txt_file.write("%d\n" % codenum)
+            numofExist += 1
+        else:
+            print("Unnecessary blank detected : %d" % codenum)
+            numofEmpty += 1
 
     else:
-        existCodeAry.append(codenum)
+        txt_file.write("%d\n" % codenum)
         numofExist += 1
 
-    codenum_prev = codenum
 
-txt_file = open(exist_glyph_text, mode='wt', encoding='utf-8')
-for code in existCodeAry:
-    txtline = "%d\n" % code
-    txt_file.write(txtline)
+##for code in existCodeAry:
+##    txtline = "%d\n" % code
+##    txt_file.write(txtline)
 
-print('For given range : %d empty glyphs / %d existing glyphs' % (numofEmpty, numofExist))
+print('%d unnecessary blanks / %d existing glyphs' % (numofEmpty, numofExist))
 print("Existing glpyhs table created. Check out the text file.\n")
 txt_file.close()
 sys.exit(0)
