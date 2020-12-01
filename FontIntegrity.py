@@ -57,7 +57,7 @@ else: ## if TTX exists then use it
     if platform.system() == "Windows": ## Windows CMD
         shcmd = "ttx -t cmap " + "\"" + fontname + "\""
     else: ## POSIX CMD
-        shcmd = "ttx -t cmap " + "\"" + fontname + "\""
+        shcmd = "./ttx -t cmap " + "\"" + fontname + "\""
     os.popen(shcmd).read()
 
 ## TTX-XML PART ##
